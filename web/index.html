@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marketing Lead Supermodel</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f8fc; color: #1f2937; }
+    h1 { margin-bottom: 0.25rem; }
+    p { margin-top: 0; color: #4b5563; }
+    .actions { margin: 1rem 0 1.25rem; display:flex; gap:0.5rem; }
+    button { border: none; border-radius: 8px; padding: 0.6rem 0.9rem; font-weight: 600; cursor: pointer; }
+    #showQualified { background:#2563eb; color:white; }
+    #showAll { background:#e5e7eb; color:#111827; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+    th, td { text-align: left; padding: 0.65rem 0.7rem; border-bottom: 1px solid #e5e7eb; }
+    th { background:#111827; color: white; font-size: 0.9rem; }
+    .badge { display:inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.78rem; }
+    .qualified { background:#dcfce7; color:#166534; }
+    .not-qualified { background:#fee2e2; color:#991b1b; }
+    #summary { font-weight: 600; margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+  <h1>Customer Upgrade Lead Board</h1>
+  <p>Lead score is calculated from web interaction, email opens, white paper downloads, and employee growth.</p>
+
+  <div class="actions">
+    <button id="showQualified">Show qualified leads for upgrade</button>
+    <button id="showAll">Show all customers</button>
+  </div>
+
+  <div id="summary"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Customer name</th>
+        <th>Web interaction</th>
+        <th>Email opened</th>
+        <th>White paper downloaded</th>
+        <th>New employees added</th>
+        <th>Lead score</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="customerBody"></tbody>
+  </table>
+
+  <script>
+    const customers = [
+      { customer_name: 'Acme Industrial', web_interaction: 23, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 12 },
+      { customer_name: 'BluePeak Retail', web_interaction: 15, email_opened: 1, white_paper_downloaded: 0, new_employees_added: 8 },
+      { customer_name: 'Crestline Bio', web_interaction: 31, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 15 },
+      { customer_name: 'DeltaWorks Logistics', web_interaction: 9, email_opened: 0, white_paper_downloaded: 0, new_employees_added: 4 },
+      { customer_name: 'Evergreen Health', web_interaction: 27, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 10 },
+      { customer_name: 'FusionGrid Energy', web_interaction: 19, email_opened: 1, white_paper_downloaded: 0, new_employees_added: 7 },
+      { customer_name: 'Grand Harbor Finance', web_interaction: 34, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 18 },
+      { customer_name: 'Helios Manufacturing', web_interaction: 22, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 9 }
+    ];
+
+    function calculateLeadScore(customer) {
+      const webPoints = customer.web_interaction >= 30 ? 4
+        : customer.web_interaction >= 20 ? 3
+        : customer.web_interaction >= 10 ? 2
+        : 1;
+      const emailPoints = customer.email_opened === 1 ? 2 : 0;
+      const whitePaperPoints = customer.white_paper_downloaded === 1 ? 2 : 0;
+      const employeePoints = customer.new_employees_added >= 15 ? 2
+        : customer.new_employees_added >= 10 ? 1
+        : 0;
+
+      return Math.min(10, webPoints + emailPoints + whitePaperPoints + employeePoints);
+    }
+
+    const scoredCustomers = customers.map(customer => {
+      const lead_score = calculateLeadScore(customer);
+      return {
+        ...customer,
+        lead_score,
+        lead_label: lead_score === 10 ? 'qualified lead for upgrade' : 'not qualified'
+      };
+    });
+
+    function renderRows(rows) {
+      const tbody = document.getElementById('customerBody');
+      tbody.innerHTML = rows.map(row => {
+        const qualified = row.lead_score === 10;
+        return `
+          <tr>
+            <td>${row.customer_name}</td>
+            <td>${row.web_interaction}</td>
+            <td>${row.email_opened}</td>
+            <td>${row.white_paper_downloaded}</td>
+            <td>${row.new_employees_added}</td>
+            <td>${row.lead_score}</td>
+            <td><span class="badge ${qualified ? 'qualified' : 'not-qualified'}">${row.lead_label}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('summary').textContent = `Showing ${rows.length} customer record(s).`;
+    }
+
+    document.getElementById('showQualified').addEventListener('click', () => {
+      renderRows(scoredCustomers.filter(customer => customer.lead_score === 10));
+    });
+
+    document.getElementById('showAll').addEventListener('click', () => {
+      renderRows(scoredCustomers);
+    });
+
+    renderRows(scoredCustomers);
+  </script>
+</body>
+</html>
