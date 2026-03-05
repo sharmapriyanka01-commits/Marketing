@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marketing Lead Supermodel</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f8fc; color: #1f2937; }
+    h1 { margin-bottom: 0.25rem; }
+    p { margin-top: 0; color: #4b5563; }
+    .actions { margin: 1rem 0 1.25rem; display:flex; gap:0.5rem; }
+    button { border: none; border-radius: 8px; padding: 0.6rem 0.9rem; font-weight: 600; cursor: pointer; }
+    #showQualified { background:#2563eb; color:white; }
+    #showAll { background:#e5e7eb; color:#111827; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+    th, td { text-align: left; padding: 0.65rem 0.7rem; border-bottom: 1px solid #e5e7eb; }
+    th { background:#111827; color: white; font-size: 0.9rem; }
+    .badge { display:inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.78rem; }
+    .qualified { background:#dcfce7; color:#166534; }
+    .not-qualified { background:#fee2e2; color:#991b1b; }
+    #summary { font-weight: 600; margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+  <h1>Customer Upgrade Lead Board</h1>
+  <p>Data in this page is loaded directly from generated model output files.</p>
+
+  <div class="actions">
+    <button id="showQualified">Show qualified leads for upgrade</button>
+    <button id="showAll">Show all customers</button>
+  </div>
+
+  <div id="summary"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Customer name</th>
+        <th>Web interaction</th>
+        <th>Email opened</th>
+        <th>White paper downloaded</th>
+        <th>New employees added</th>
+        <th>Lead score</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="customerBody"></tbody>
+  </table>
+
+  <script>
+    let allCustomers = [];
+
+    function renderRows(rows) {
+      const tbody = document.getElementById('customerBody');
+      tbody.innerHTML = rows.map((row) => {
+        const qualified = row.lead_score === 10;
+        return `
+          <tr>
+            <td>${row.customer_name}</td>
+            <td>${row.web_interaction}</td>
+            <td>${row.email_opened}</td>
+            <td>${row.white_paper_downloaded}</td>
+            <td>${row.new_employees_added}</td>
+            <td>${row.lead_score}</td>
+            <td><span class="badge ${qualified ? 'qualified' : 'not-qualified'}">${row.lead_label}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('summary').textContent = `Showing ${rows.length} customer record(s).`;
+    }
+
+    async function loadAllCustomers() {
+      const response = await fetch('/model_output/supermodel_customer_upgrade_leads.json');
+      if (!response.ok) {
+        throw new Error('Unable to load full model output.');
+      }
+      allCustomers = await response.json();
+      renderRows(allCustomers);
+    }
+
+    async function loadQualifiedCustomers() {
+      const response = await fetch('/model_output/qualified_leads_for_upgrade.json');
+      if (!response.ok) {
+        throw new Error('Unable to load qualified leads model output.');
+      }
+      const qualifiedCustomers = await response.json();
+      renderRows(qualifiedCustomers);
+    }
+
+    document.getElementById('showQualified').addEventListener('click', async () => {
+      await loadQualifiedCustomers();
+    });
+
+    document.getElementById('showAll').addEventListener('click', () => {
+      renderRows(allCustomers);
+    });
+
+    loadAllCustomers().catch((error) => {
+      document.getElementById('summary').textContent = error.message;
+    });
+  </script>
+</body>
+</html>

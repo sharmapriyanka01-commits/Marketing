@@ -1,0 +1,74 @@
+[
+  {
+    "customer_name": "Acme Industrial",
+    "web_interaction": 23,
+    "email_opened": 1,
+    "white_paper_downloaded": 1,
+    "new_employees_added": 12,
+    "lead_score": 8,
+    "lead_label": "not qualified"
+  },
+  {
+    "customer_name": "BluePeak Retail",
+    "web_interaction": 15,
+    "email_opened": 1,
+    "white_paper_downloaded": 0,
+    "new_employees_added": 8,
+    "lead_score": 4,
+    "lead_label": "not qualified"
+  },
+  {
+    "customer_name": "Crestline Bio",
+    "web_interaction": 31,
+    "email_opened": 1,
+    "white_paper_downloaded": 1,
+    "new_employees_added": 15,
+    "lead_score": 10,
+    "lead_label": "qualified lead for upgrade"
+  },
+  {
+    "customer_name": "DeltaWorks Logistics",
+    "web_interaction": 9,
+    "email_opened": 0,
+    "white_paper_downloaded": 0,
+    "new_employees_added": 4,
+    "lead_score": 1,
+    "lead_label": "not qualified"
+  },
+  {
+    "customer_name": "Evergreen Health",
+    "web_interaction": 27,
+    "email_opened": 1,
+    "white_paper_downloaded": 1,
+    "new_employees_added": 10,
+    "lead_score": 8,
+    "lead_label": "not qualified"
+  },
+  {
+    "customer_name": "FusionGrid Energy",
+    "web_interaction": 19,
+    "email_opened": 1,
+    "white_paper_downloaded": 0,
+    "new_employees_added": 7,
+    "lead_score": 4,
+    "lead_label": "not qualified"
+  },
+  {
+    "customer_name": "Grand Harbor Finance",
+    "web_interaction": 34,
+    "email_opened": 1,
+    "white_paper_downloaded": 1,
+    "new_employees_added": 18,
+    "lead_score": 10,
+    "lead_label": "qualified lead for upgrade"
+  },
+  {
+    "customer_name": "Helios Manufacturing",
+    "web_interaction": 22,
+    "email_opened": 1,
+    "white_paper_downloaded": 1,
+    "new_employees_added": 9,
+    "lead_score": 7,
+    "lead_label": "not qualified"
+  }
+]

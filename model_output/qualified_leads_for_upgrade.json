@@ -1,0 +1,20 @@
+[
+  {
+    "customer_name": "Crestline Bio",
+    "web_interaction": 31,
+    "email_opened": 1,
+    "white_paper_downloaded": 1,
+    "new_employees_added": 15,
+    "lead_score": 10,
+    "lead_label": "qualified lead for upgrade"
+  },
+  {
+    "customer_name": "Grand Harbor Finance",
+    "web_interaction": 34,
+    "email_opened": 1,
+    "white_paper_downloaded": 1,
+    "new_employees_added": 18,
+    "lead_score": 10,
+    "lead_label": "qualified lead for upgrade"
+  }
+]
