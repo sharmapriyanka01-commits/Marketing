@@ -8,17 +8,53 @@
     body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f8fc; color: #1f2937; }
     h1 { margin-bottom: 0.25rem; }
     p { margin-top: 0; color: #4b5563; }
-    .actions { margin: 1rem 0 1.25rem; display:flex; gap:0.5rem; }
+    .actions { margin: 1rem 0 1.25rem; display:flex; gap:0.5rem; flex-wrap: wrap; }
     button { border: none; border-radius: 8px; padding: 0.6rem 0.9rem; font-weight: 600; cursor: pointer; }
     #showQualified { background:#2563eb; color:white; }
     #showAll { background:#e5e7eb; color:#111827; }
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
-    th, td { text-align: left; padding: 0.65rem 0.7rem; border-bottom: 1px solid #e5e7eb; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem; }
+    th, td { text-align: left; padding: 0.65rem 0.7rem; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
     th { background:#111827; color: white; font-size: 0.9rem; }
     .badge { display:inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.78rem; }
     .qualified { background:#dcfce7; color:#166534; }
     .not-qualified { background:#fee2e2; color:#991b1b; }
-    #summary { font-weight: 600; margin-bottom: 0.75rem; }
+    .priority-high { background:#fee2e2; color:#991b1b; }
+    .priority-medium { background:#fef3c7; color:#92400e; }
+    .priority-low { background:#dcfce7; color:#166534; }
+    #summary, #taskSummary { font-weight: 600; margin-bottom: 0.75rem; }
+
+    .panel {
+      background: white;
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      margin-bottom: 1rem;
+    }
+
+    .panel h2 { margin-top: 0; font-size: 1.15rem; }
+    .panel p { margin-bottom: 0.75rem; }
+    .field-group { display: grid; gap: 0.75rem; }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 0.65rem;
+      font-family: inherit;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    #createTasks { background:#0f766e; color:white; }
+    #clearTasks { background:#e5e7eb; color:#111827; }
   </style>
 </head>
 <body>
@@ -47,6 +83,42 @@
     <tbody id="customerBody"></tbody>
   </table>
 
+  <section class="panel" aria-labelledby="taskCreationTitle">
+    <h2 id="taskCreationTitle">Marketing task auto-creation</h2>
+    <p>Paste unstructured content from one document and one chat conversation. The app auto-detects actionable lines and creates prioritized Marketing team tasks.</p>
+
+    <div class="field-group">
+      <div>
+        <label for="documentInput">1) Document text</label>
+        <textarea id="documentInput" placeholder="Example: Finalize Q3 webinar landing page by Friday. Coordinate legal approval for ad copy. ASAP publish event page."></textarea>
+      </div>
+      <div>
+        <label for="chatInput">2) Chat conversation</label>
+        <textarea id="chatInput" placeholder="Example: Can someone draft social posts today? We need to review campaign budget this week."></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="createTasks">Auto-detect and create tasks</button>
+      <button id="clearTasks">Clear tasks</button>
+    </div>
+
+    <div id="taskSummary"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Priority</th>
+          <th>Task</th>
+          <th>Source</th>
+          <th>Assignee</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="taskBody"></tbody>
+    </table>
+  </section>
+
   <script>
     const customers = [
       { customer_name: 'Acme Industrial', web_interaction: 23, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 12 },
@@ -58,6 +130,8 @@
       { customer_name: 'Grand Harbor Finance', web_interaction: 34, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 18 },
       { customer_name: 'Helios Manufacturing', web_interaction: 22, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 9 }
     ];
+
+    const taskVerbs = ['create', 'draft', 'launch', 'schedule', 'review', 'prepare', 'send', 'build', 'update', 'coordinate', 'publish', 'finalize', 'approve', 'design'];
 
     function calculateLeadScore(customer) {
       const webPoints = customer.web_interaction >= 30 ? 4
@@ -102,6 +176,92 @@
       document.getElementById('summary').textContent = `Showing ${rows.length} customer record(s).`;
     }
 
+    function splitUnstructuredText(inputText) {
+      return inputText
+        .split(/\n|\.|;|\u2022/)
+        .map(line => line.trim())
+        .filter(line => line.length > 8);
+    }
+
+    function isLikelyTask(line) {
+      const lower = line.toLowerCase();
+      return taskVerbs.some(verb => lower.includes(verb));
+    }
+
+    function detectPriority(line) {
+      const lower = line.toLowerCase();
+      const highSignals = ['asap', 'urgent', 'today', 'immediately', 'eod', 'by tomorrow'];
+      const mediumSignals = ['this week', 'soon', 'next', 'by friday', 'by monday'];
+
+      if (highSignals.some(signal => lower.includes(signal))) {
+        return 'high';
+      }
+
+      if (mediumSignals.some(signal => lower.includes(signal))) {
+        return 'medium';
+      }
+
+      return 'low';
+    }
+
+    function priorityWeight(priority) {
+      if (priority === 'high') return 3;
+      if (priority === 'medium') return 2;
+      return 1;
+    }
+
+    function toTask(line, source, index) {
+      const titleBase = line.charAt(0).toUpperCase() + line.slice(1);
+      const priority = detectPriority(line);
+      return {
+        id: `MKT-${String(index + 1).padStart(3, '0')}`,
+        title: titleBase.length > 80 ? `${titleBase.slice(0, 77)}...` : titleBase,
+        description: line,
+        priority,
+        assignee: 'Marketing Team',
+        source,
+        status: 'todo'
+      };
+    }
+
+    function createTasksFromInputs() {
+      const docText = document.getElementById('documentInput').value;
+      const chatText = document.getElementById('chatInput').value;
+
+      const docTasks = splitUnstructuredText(docText)
+        .filter(isLikelyTask)
+        .map((line, index) => toTask(line, 'document', index));
+
+      const chatTasks = splitUnstructuredText(chatText)
+        .filter(isLikelyTask)
+        .map((line, index) => toTask(line, 'chat', docTasks.length + index));
+
+      return [...docTasks, ...chatTasks]
+        .sort((a, b) => priorityWeight(b.priority) - priorityWeight(a.priority));
+    }
+
+    function renderTasks(tasks) {
+      const tbody = document.getElementById('taskBody');
+      const summary = document.getElementById('taskSummary');
+
+      if (tasks.length === 0) {
+        summary.textContent = 'No actionable tasks detected yet. Add clearer action-oriented text.';
+        tbody.innerHTML = '';
+        return;
+      }
+
+      summary.textContent = `Created ${tasks.length} prioritized task(s) for Marketing Team.`;
+      tbody.innerHTML = tasks.map(task => `
+        <tr>
+          <td><span class="badge priority-${task.priority}">${task.priority.toUpperCase()}</span></td>
+          <td><strong>${task.id}</strong><br>${task.title}</td>
+          <td>${task.source}</td>
+          <td>${task.assignee}</td>
+          <td>${task.status}</td>
+        </tr>
+      `).join('');
+    }
+
     document.getElementById('showQualified').addEventListener('click', () => {
       renderRows(scoredCustomers.filter(customer => customer.lead_score === 10));
     });
@@ -110,7 +270,18 @@
       renderRows(scoredCustomers);
     });
 
+    document.getElementById('createTasks').addEventListener('click', () => {
+      renderTasks(createTasksFromInputs());
+    });
+
+    document.getElementById('clearTasks').addEventListener('click', () => {
+      document.getElementById('documentInput').value = '';
+      document.getElementById('chatInput').value = '';
+      renderTasks([]);
+    });
+
     renderRows(scoredCustomers);
+    renderTasks([]);
   </script>
 </body>
 </html>
