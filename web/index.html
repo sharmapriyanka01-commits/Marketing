@@ -8,17 +8,63 @@
     body { font-family: Arial, sans-serif; margin: 2rem; background: #f7f8fc; color: #1f2937; }
     h1 { margin-bottom: 0.25rem; }
     p { margin-top: 0; color: #4b5563; }
-    .actions { margin: 1rem 0 1.25rem; display:flex; gap:0.5rem; }
+    .actions { margin: 1rem 0 1.25rem; display:flex; gap:0.5rem; flex-wrap: wrap; }
     button { border: none; border-radius: 8px; padding: 0.6rem 0.9rem; font-weight: 600; cursor: pointer; }
     #showQualified { background:#2563eb; color:white; }
     #showAll { background:#e5e7eb; color:#111827; }
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; margin-bottom: 2rem; }
     th, td { text-align: left; padding: 0.65rem 0.7rem; border-bottom: 1px solid #e5e7eb; }
     th { background:#111827; color: white; font-size: 0.9rem; }
     .badge { display:inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.78rem; }
     .qualified { background:#dcfce7; color:#166534; }
     .not-qualified { background:#fee2e2; color:#991b1b; }
-    #summary { font-weight: 600; margin-bottom: 0.75rem; }
+    #summary, #taskSummary { font-weight: 600; margin-bottom: 0.75rem; }
+
+    .panel {
+      background: white;
+      border-radius: 10px;
+      padding: 1rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      margin-bottom: 1rem;
+    }
+
+    .panel h2 { margin-top: 0; font-size: 1.15rem; }
+    .panel p { margin-bottom: 0.75rem; }
+
+    .field-group { display: grid; gap: 0.75rem; }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 0.65rem;
+      font-family: inherit;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    #createTasks { background:#0f766e; color:white; }
+    #clearTasks { background:#e5e7eb; color:#111827; }
+
+    .task-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 0.6rem;
+      background: #fafafa;
+    }
+
+    .task-title { font-weight: 700; margin-bottom: 0.25rem; }
+    .task-meta { font-size: 0.85rem; color: #374151; }
+    .task-desc { margin-top: 0.35rem; }
   </style>
 </head>
 <body>
@@ -46,6 +92,30 @@
     </thead>
     <tbody id="customerBody"></tbody>
   </table>
+
+  <section class="panel" aria-labelledby="taskCreationTitle">
+    <h2 id="taskCreationTitle">Marketing task auto-creation</h2>
+    <p>Paste unstructured notes from a document and/or a chat. The UI will convert actionable lines into Marketing team tasks.</p>
+
+    <div class="field-group">
+      <div>
+        <label for="documentInput">Document input</label>
+        <textarea id="documentInput" placeholder="Example: Finalize Q3 webinar landing page by Friday. Coordinate legal approval for ad copy."></textarea>
+      </div>
+      <div>
+        <label for="chatInput">Chat input</label>
+        <textarea id="chatInput" placeholder="Example: Can someone draft social posts? Also schedule campaign recap for next Tuesday."></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="createTasks">Auto-create tasks</button>
+      <button id="clearTasks">Clear tasks</button>
+    </div>
+
+    <div id="taskSummary"></div>
+    <div id="taskList"></div>
+  </section>
 
   <script>
     const customers = [
@@ -102,6 +172,70 @@
       document.getElementById('summary').textContent = `Showing ${rows.length} customer record(s).`;
     }
 
+    function splitUnstructuredText(inputText) {
+      return inputText
+        .split(/\n|\.|;|\u2022|-/)
+        .map(line => line.trim())
+        .filter(line => line.length > 10);
+    }
+
+    function isLikelyTask(line) {
+      const keywords = [
+        'create', 'draft', 'launch', 'schedule', 'review', 'prepare',
+        'send', 'build', 'update', 'coordinate', 'publish', 'finalize'
+      ];
+
+      const lower = line.toLowerCase();
+      return keywords.some(keyword => lower.includes(keyword));
+    }
+
+    function toTask(line, source, index) {
+      const cleanTitle = line.charAt(0).toUpperCase() + line.slice(1);
+      return {
+        id: `MKT-${String(index + 1).padStart(3, '0')}`,
+        title: cleanTitle.length > 70 ? `${cleanTitle.slice(0, 67)}...` : cleanTitle,
+        description: line,
+        assignee: 'Marketing Team',
+        source,
+        status: 'todo'
+      };
+    }
+
+    function createTasksFromInputs() {
+      const docText = document.getElementById('documentInput').value;
+      const chatText = document.getElementById('chatInput').value;
+
+      const docLines = splitUnstructuredText(docText)
+        .filter(isLikelyTask)
+        .map((line, idx) => toTask(line, 'document', idx));
+
+      const chatLines = splitUnstructuredText(chatText)
+        .filter(isLikelyTask)
+        .map((line, idx) => toTask(line, 'chat', docLines.length + idx));
+
+      return [...docLines, ...chatLines];
+    }
+
+    function renderTasks(tasks) {
+      const list = document.getElementById('taskList');
+      const summary = document.getElementById('taskSummary');
+
+      if (tasks.length === 0) {
+        summary.textContent = 'No actionable tasks found. Add more detailed document/chat input.';
+        list.innerHTML = '';
+        return;
+      }
+
+      summary.textContent = `Auto-created ${tasks.length} Marketing team task(s).`;
+      list.innerHTML = tasks.map(task => `
+        <article class="task-card">
+          <div class="task-title">${task.id} · ${task.title}</div>
+          <div class="task-meta">Assignee: ${task.assignee} · Source: ${task.source} · Status: ${task.status}</div>
+          <div class="task-desc">${task.description}</div>
+        </article>
+      `).join('');
+    }
+
     document.getElementById('showQualified').addEventListener('click', () => {
       renderRows(scoredCustomers.filter(customer => customer.lead_score === 10));
     });
@@ -110,7 +244,19 @@
       renderRows(scoredCustomers);
     });
 
+    document.getElementById('createTasks').addEventListener('click', () => {
+      const tasks = createTasksFromInputs();
+      renderTasks(tasks);
+    });
+
+    document.getElementById('clearTasks').addEventListener('click', () => {
+      document.getElementById('documentInput').value = '';
+      document.getElementById('chatInput').value = '';
+      renderTasks([]);
+    });
+
     renderRows(scoredCustomers);
+    renderTasks([]);
   </script>
 </body>
 </html>

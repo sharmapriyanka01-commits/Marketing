@@ -10,7 +10,8 @@ This repository includes:
   - New employees added
 - `models/supermodels/supermodel_customer_upgrade_leads.sql` that calculates a per-customer `lead_score` (10 or under) from interaction behavior and growth signals.
 - `models/supermodels/qualified_leads_for_upgrade.sql` that returns only customers where `lead_score = 10`.
-- `web/index.html` that displays customer records and includes a **Show qualified leads for upgrade** button to filter to customers with `lead_score = 10`.
+- `web/index.html` that displays customer records, includes a **Show qualified leads for upgrade** button, and now includes a task management panel that auto-creates Marketing team tasks from unstructured document/chat text.
+- `marketing_team/` workspace containing a `tasks/` folder for Marketing task artifacts and sample generated task output.
 
 ## Qualified leads logic
 When users ask to show **qualified leads for upgrade** in SQL, use:
