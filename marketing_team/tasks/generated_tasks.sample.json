@@ -1,16 +1,18 @@
 [
   {
     "id": "MKT-001",
-    "title": "Draft Q2 launch email",
-    "description": "Write and review launch email copy for the Q2 campaign.",
+    "title": "Publish Q2 launch page ASAP",
+    "description": "Finalize and publish Q2 launch page ASAP.",
+    "priority": "high",
     "assignee": "Marketing Team",
     "source": "document",
     "status": "todo"
   },
   {
     "id": "MKT-002",
-    "title": "Prepare social media creatives",
-    "description": "Create image and caption variants for LinkedIn and X.",
+    "title": "Review campaign budget this week",
+    "description": "Review campaign budget this week with paid media stakeholders.",
+    "priority": "medium",
     "assignee": "Marketing Team",
     "source": "chat",
     "status": "todo"

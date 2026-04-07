@@ -12,12 +12,15 @@
     button { border: none; border-radius: 8px; padding: 0.6rem 0.9rem; font-weight: 600; cursor: pointer; }
     #showQualified { background:#2563eb; color:white; }
     #showAll { background:#e5e7eb; color:#111827; }
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; margin-bottom: 2rem; }
-    th, td { text-align: left; padding: 0.65rem 0.7rem; border-bottom: 1px solid #e5e7eb; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem; }
+    th, td { text-align: left; padding: 0.65rem 0.7rem; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
     th { background:#111827; color: white; font-size: 0.9rem; }
     .badge { display:inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.78rem; }
     .qualified { background:#dcfce7; color:#166534; }
     .not-qualified { background:#fee2e2; color:#991b1b; }
+    .priority-high { background:#fee2e2; color:#991b1b; }
+    .priority-medium { background:#fef3c7; color:#92400e; }
+    .priority-low { background:#dcfce7; color:#166534; }
     #summary, #taskSummary { font-weight: 600; margin-bottom: 0.75rem; }
 
     .panel {
@@ -30,7 +33,6 @@
 
     .panel h2 { margin-top: 0; font-size: 1.15rem; }
     .panel p { margin-bottom: 0.75rem; }
-
     .field-group { display: grid; gap: 0.75rem; }
 
     label {
@@ -53,18 +55,6 @@
 
     #createTasks { background:#0f766e; color:white; }
     #clearTasks { background:#e5e7eb; color:#111827; }
-
-    .task-card {
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 0.75rem;
-      margin-bottom: 0.6rem;
-      background: #fafafa;
-    }
-
-    .task-title { font-weight: 700; margin-bottom: 0.25rem; }
-    .task-meta { font-size: 0.85rem; color: #374151; }
-    .task-desc { margin-top: 0.35rem; }
   </style>
 </head>
 <body>
@@ -95,26 +85,38 @@
 
   <section class="panel" aria-labelledby="taskCreationTitle">
     <h2 id="taskCreationTitle">Marketing task auto-creation</h2>
-    <p>Paste unstructured notes from a document and/or a chat. The UI will convert actionable lines into Marketing team tasks.</p>
+    <p>Paste unstructured content from one document and one chat conversation. The app auto-detects actionable lines and creates prioritized Marketing team tasks.</p>
 
     <div class="field-group">
       <div>
-        <label for="documentInput">Document input</label>
-        <textarea id="documentInput" placeholder="Example: Finalize Q3 webinar landing page by Friday. Coordinate legal approval for ad copy."></textarea>
+        <label for="documentInput">1) Document text</label>
+        <textarea id="documentInput" placeholder="Example: Finalize Q3 webinar landing page by Friday. Coordinate legal approval for ad copy. ASAP publish event page."></textarea>
       </div>
       <div>
-        <label for="chatInput">Chat input</label>
-        <textarea id="chatInput" placeholder="Example: Can someone draft social posts? Also schedule campaign recap for next Tuesday."></textarea>
+        <label for="chatInput">2) Chat conversation</label>
+        <textarea id="chatInput" placeholder="Example: Can someone draft social posts today? We need to review campaign budget this week."></textarea>
       </div>
     </div>
 
     <div class="actions">
-      <button id="createTasks">Auto-create tasks</button>
+      <button id="createTasks">Auto-detect and create tasks</button>
       <button id="clearTasks">Clear tasks</button>
     </div>
 
     <div id="taskSummary"></div>
-    <div id="taskList"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Priority</th>
+          <th>Task</th>
+          <th>Source</th>
+          <th>Assignee</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="taskBody"></tbody>
+    </table>
   </section>
 
   <script>
@@ -128,6 +130,8 @@
       { customer_name: 'Grand Harbor Finance', web_interaction: 34, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 18 },
       { customer_name: 'Helios Manufacturing', web_interaction: 22, email_opened: 1, white_paper_downloaded: 1, new_employees_added: 9 }
     ];
+
+    const taskVerbs = ['create', 'draft', 'launch', 'schedule', 'review', 'prepare', 'send', 'build', 'update', 'coordinate', 'publish', 'finalize', 'approve', 'design'];
 
     function calculateLeadScore(customer) {
       const webPoints = customer.web_interaction >= 30 ? 4
@@ -174,27 +178,46 @@
 
     function splitUnstructuredText(inputText) {
       return inputText
-        .split(/\n|\.|;|\u2022|-/)
+        .split(/\n|\.|;|\u2022/)
         .map(line => line.trim())
-        .filter(line => line.length > 10);
+        .filter(line => line.length > 8);
     }
 
     function isLikelyTask(line) {
-      const keywords = [
-        'create', 'draft', 'launch', 'schedule', 'review', 'prepare',
-        'send', 'build', 'update', 'coordinate', 'publish', 'finalize'
-      ];
-
       const lower = line.toLowerCase();
-      return keywords.some(keyword => lower.includes(keyword));
+      return taskVerbs.some(verb => lower.includes(verb));
+    }
+
+    function detectPriority(line) {
+      const lower = line.toLowerCase();
+      const highSignals = ['asap', 'urgent', 'today', 'immediately', 'eod', 'by tomorrow'];
+      const mediumSignals = ['this week', 'soon', 'next', 'by friday', 'by monday'];
+
+      if (highSignals.some(signal => lower.includes(signal))) {
+        return 'high';
+      }
+
+      if (mediumSignals.some(signal => lower.includes(signal))) {
+        return 'medium';
+      }
+
+      return 'low';
+    }
+
+    function priorityWeight(priority) {
+      if (priority === 'high') return 3;
+      if (priority === 'medium') return 2;
+      return 1;
     }
 
     function toTask(line, source, index) {
-      const cleanTitle = line.charAt(0).toUpperCase() + line.slice(1);
+      const titleBase = line.charAt(0).toUpperCase() + line.slice(1);
+      const priority = detectPriority(line);
       return {
         id: `MKT-${String(index + 1).padStart(3, '0')}`,
-        title: cleanTitle.length > 70 ? `${cleanTitle.slice(0, 67)}...` : cleanTitle,
+        title: titleBase.length > 80 ? `${titleBase.slice(0, 77)}...` : titleBase,
         description: line,
+        priority,
         assignee: 'Marketing Team',
         source,
         status: 'todo'
@@ -205,34 +228,37 @@
       const docText = document.getElementById('documentInput').value;
       const chatText = document.getElementById('chatInput').value;
 
-      const docLines = splitUnstructuredText(docText)
+      const docTasks = splitUnstructuredText(docText)
         .filter(isLikelyTask)
-        .map((line, idx) => toTask(line, 'document', idx));
+        .map((line, index) => toTask(line, 'document', index));
 
-      const chatLines = splitUnstructuredText(chatText)
+      const chatTasks = splitUnstructuredText(chatText)
         .filter(isLikelyTask)
-        .map((line, idx) => toTask(line, 'chat', docLines.length + idx));
+        .map((line, index) => toTask(line, 'chat', docTasks.length + index));
 
-      return [...docLines, ...chatLines];
+      return [...docTasks, ...chatTasks]
+        .sort((a, b) => priorityWeight(b.priority) - priorityWeight(a.priority));
     }
 
     function renderTasks(tasks) {
-      const list = document.getElementById('taskList');
+      const tbody = document.getElementById('taskBody');
       const summary = document.getElementById('taskSummary');
 
       if (tasks.length === 0) {
-        summary.textContent = 'No actionable tasks found. Add more detailed document/chat input.';
-        list.innerHTML = '';
+        summary.textContent = 'No actionable tasks detected yet. Add clearer action-oriented text.';
+        tbody.innerHTML = '';
         return;
       }
 
-      summary.textContent = `Auto-created ${tasks.length} Marketing team task(s).`;
-      list.innerHTML = tasks.map(task => `
-        <article class="task-card">
-          <div class="task-title">${task.id} · ${task.title}</div>
-          <div class="task-meta">Assignee: ${task.assignee} · Source: ${task.source} · Status: ${task.status}</div>
-          <div class="task-desc">${task.description}</div>
-        </article>
+      summary.textContent = `Created ${tasks.length} prioritized task(s) for Marketing Team.`;
+      tbody.innerHTML = tasks.map(task => `
+        <tr>
+          <td><span class="badge priority-${task.priority}">${task.priority.toUpperCase()}</span></td>
+          <td><strong>${task.id}</strong><br>${task.title}</td>
+          <td>${task.source}</td>
+          <td>${task.assignee}</td>
+          <td>${task.status}</td>
+        </tr>
       `).join('');
     }
 
@@ -245,8 +271,7 @@
     });
 
     document.getElementById('createTasks').addEventListener('click', () => {
-      const tasks = createTasksFromInputs();
-      renderTasks(tasks);
+      renderTasks(createTasksFromInputs());
     });
 
     document.getElementById('clearTasks').addEventListener('click', () => {
